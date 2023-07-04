@@ -3,35 +3,132 @@ session_start();
 
 $root = "http://localhost:8080/bts/";
 
-function pdo()
+
+
+function mysqli_connect_db()
 {
-    $dbhost = "localhost"; // 127.0.0.1
-    $dbname = "project";
+    $dbhost = "localhost"; // or IP address: 127.0.0.1
+    $dbname = "bts";
     $dbuser = "root";
     $dbpass = "";
 
-    $options = [
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ];
+    $mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 
-    $dsn = "mysql:host=" . $dbhost . ";dbname=" . $dbname;
-
-    try {
-        $pdo = new PDO($dsn, $dbuser, $dbpass, $options);
-    } catch (PDOException $e) {
-        die("Cannot Connect to Database: " . $e->getMessage());
+    if ($mysqli->connect_errno) {
+        die("Cannot Connect to Database: " . $mysqli->connect_error);
     }
 
-    return $pdo;
+    return $mysqli;
 }
 
-/**
- * Get Item from $_GET or $_POST with key
- *
- * @param string $key Key of Item to Fetch
- *
- * @return string|null
- */
+function mysqli_query_exec($mysqli, $sql)
+{
+    $result = $mysqli->query($sql);
+
+    if (!$result) {
+        die("Query Error: " . $mysqli->error);
+    }
+
+    return $result;
+}
+
+function mysqli_fetch_all_rows($result)
+{
+    $rows = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = $row;
+    }
+
+    return $rows;
+}
+
+function mysqli_fetch_single_row($result)
+{
+    return $result->fetch_assoc();
+}
+
+function mysqli_get_last_insert_id($mysqli)
+{
+    return $mysqli->insert_id;
+}
+
+// function mysqli_escape_string($mysqli, $string)
+// {
+//     return $mysqli->real_escape_string($string);
+// }
+
+function create($table, $data)
+{
+    $mysqli = mysqli_connect_db();
+
+    // Prepare the column names and values
+    $columns = implode(', ', array_keys($data));
+
+    $values = array_map(function ($value) use ($mysqli) {
+        return "'" . mysqli_escape_string($mysqli, $value) . "'";
+    }, $data);
+
+    $values = implode(', ', $values);
+
+    // Create the INSERT query
+    $sql = "INSERT INTO $table ($columns) VALUES ($values)";
+
+    // Execute the query
+    mysqli_query_exec($mysqli, $sql);
+
+    // Return the last insert ID
+    return mysqli_get_last_insert_id($mysqli);
+}
+
+
+function all($table)
+{
+    $mysqli = mysqli_connect_db();
+    $sql = "SELECT * FROM $table";
+    $result = mysqli_query_exec($mysqli, $sql);
+    return mysqli_fetch_all_rows($result);
+}
+
+function find($table, $id)
+{
+    $mysqli = mysqli_connect_db();
+    $id = mysqli_escape_string($mysqli, $id);
+    $sql = "SELECT * FROM $table WHERE id = '$id'";
+    $result = mysqli_query_exec($mysqli, $sql);
+    return mysqli_fetch_single_row($result);
+}
+
+function where($table, $col, $opr, $val)
+{
+    $mysqli = mysqli_connect_db();
+    $col = mysqli_escape_string($mysqli, $col);
+    $val = mysqli_escape_string($mysqli, $val);
+    $sql = "SELECT * FROM $table WHERE $col $opr '$val'";
+    $result = mysqli_query_exec($mysqli, $sql);
+    return mysqli_fetch_all_rows($result);
+}
+
+function db_count($table)
+{
+    $mysqli = mysqli_connect_db();
+    $sql = "SELECT count(*) as count FROM $table";
+    $result = mysqli_query_exec($mysqli, $sql);
+    $row = mysqli_fetch_single_row($result);
+    return $row['count'];
+}
+
+function query($sql)
+{
+    $mysqli = mysqli_connect_db();
+    $result = mysqli_query_exec($mysqli, $sql);
+    return mysqli_fetch_all_rows($result);
+}
+
+
+
+
+
 function request($key)
 {
     return $_REQUEST[$key] ?? null;
@@ -39,7 +136,7 @@ function request($key)
 
 /**
  * Check if User is Logged in or Not
- *
+ *   
  * @return bool
  */
 function is_logged()
@@ -65,189 +162,66 @@ function user()
     return false;
 }
 
-/**
- * Run Arbitary SQL Code
- *
- * @param string $sql SQL Code
- * @param bool $all use fetchAll() or fetch()
- * @return array|false
- */
-function query($sql, $all = true)
+function dd($data)
 {
-    $pdo = pdo();
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    echo "
+<pre>";
+    print_r($data);
+    echo "</pre>";
+    die();
+}
 
-    if ($all) {
-        return $stmt->fetchAll();
+
+function redirect($url)
+{
+    header("Location: $url");
+    die();
+}
+
+function success($msg)
+{
+    $_SESSION['success'] = $msg;
+}
+
+function error($msg)
+{
+    $_SESSION['error'] = $msg;
+}
+
+function get_error()
+{
+    if (isset($_SESSION['error'])) {
+        $msg = $_SESSION['error'];
+        echo "<div class='alert alert-danger'>$msg</div>";
+        unset($_SESSION['error']);
+        return $msg;
     }
-
-    return $stmt->fetch();
+    return false;
 }
 
-/**
- * Use SELECT * FROM TABLE WHERE `sth` = 'val'
- *
- * @param string $table Table Name
- * @param string $col Column Name
- * @param string $opr Operator (=, !=, >, <,...)
- * @param string $val Value to Compare
- * @param bool $all Use fetchAll() or fetch()
- *
- * @return array|false
- */
-function where($table, $col, $opr, $val, $all = true)
+function get_success()
 {
-    $pdo = pdo();
-    $stmt = $pdo->prepare("SELECT * FROM $table WHERE $col $opr ?");
-    $stmt->execute([$val]);
-
-    if ($all) {
-        return $stmt->fetchAll();
+    if (isset($_SESSION['success'])) {
+        $msg = $_SESSION['success'];
+        echo "<div class='alert alert-success'>$msg</div>";
+        unset($_SESSION['success']);
+        return $msg;
     }
-
-    return $stmt->fetch();
+    return false;
 }
-
-/**
- * Find ITEM on $table by their $id
- *
- * @param string $table Table Name
- * @param int $id ID of the Item in table
- *
- * @return array|false
- */
-function find($table, $id)
+function has_error()
 {
-    return where($table, 'id', '=', $id, false);
-}
+    return isset($_SESSION['error']);
+};
 
-/**
- * Get all Items in Table
- *
- * @param string $table
- *
- * @return array|false
- */
-function all($table)
+function has_success()
 {
-    $pdo = pdo();
+    return isset($_SESSION['success']);
+};
 
-    $stmt = $pdo->prepare("SELECT * FROM $table");
-    $stmt->execute();
-
-    return $stmt->fetchAll();
-}
-
-/**
- * Count Number of Rows in Table
- *
- * @param string $table Table Name
- * @return int
- */
-function count_item($table)
+function auth()
 {
-    $pdo = pdo();
-
-    $stmt = $pdo->prepare("SELECT count(*) FROM $table");
-    $stmt->execute();
-
-    return $stmt->fetchColumn();
-}
-
-/**
- * Create Data from Associative Array
- *
- * @param string $table Table to Create Item
- * @param array $data Associative array of data to insert.
- *
- * @return true
- */
-function create($table, $data)
-{
-    $keys = array_keys($data);
-    $values = array_values($data);
-    $length = count($keys);
-
-    $sql = "INSERT INTO $table (";
-
-    $i = 1;
-    foreach ($keys as $k) {
-        $sql = $sql . $k;
-        if ($i != $length) {
-            $sql = $sql . ", ";
-        }
-        $i++;
+    if (!is_logged()) {
+        redirect($GLOBALS['root'] . 'login.php');
     }
-
-    $sql = $sql . ") VALUES (";
-    $i = 1;
-    foreach ($keys as $k) {
-        $sql = $sql . "?";
-        if ($i != $length) {
-            $sql = $sql . ", ";
-        }
-        $i++;
-    }
-
-    $sql = $sql . ")";
-
-    $pdo = pdo();
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($values);
-
-    return true;
-}
-
-/**
- * Update data of Item ID from Associative Array
- *
- * @param string $table Table to Update Item
- * @param int $id ID of Item to Update
- * @param array $data Associative array of data to update.
- *
- * @return true
- */
-function update($table, $id, $data)
-{
-    $keys = array_keys($data);
-    $values = array_values($data);
-    $length = count($keys);
-
-    $sql = "UPDATE $table SET ";
-    $i = 1;
-    foreach ($keys as $k) {
-        $sql = $sql . " $k = ? ";
-        if ($i != $length) {
-            $sql = $sql . ", ";
-        }
-        $i++;
-    }
-
-    $sql = $sql . " WHERE id = ?";
-
-    $values[] = $id;
-
-    $pdo = pdo();
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($values);
-
-    return true;
-}
-
-/**
- * Delete data from table
- *
- * @param string $table Table Name
- * @param int $id ID of Item to Delete
- *
- * @return true
- */
-function delete($table, $id)
-{
-    $pdo = pdo();
-    $stmt = $pdo->prepare("DELETE FROM $table WHERE id = ?");
-    $stmt->execute([$id]);
-
-    return true;
 }
