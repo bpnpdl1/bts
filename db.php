@@ -3,6 +3,8 @@ session_start();
 
 $root = "http://localhost:8080/bts/";
 
+$_SESSION['root'] = $root;
+
 
 
 function mysqli_connect_db()
@@ -126,7 +128,23 @@ function query($sql)
 }
 
 
+function whereIn($table, $arr_id)
+{
+    $mysqli = mysqli_connect_db();
+    $arr_id = implode(',', $arr_id);
+    $sql = "SELECT * FROM $table WHERE id IN ($arr_id)";
+    $result = mysqli_query_exec($mysqli, $sql);
+    return mysqli_fetch_all_rows($result);
+}
 
+
+function pluck($table, $col)
+{
+    $mysqli = mysqli_connect_db();
+    $sql = "SELECT $col FROM $table";
+    $result = mysqli_query_exec($mysqli, $sql);
+    return mysqli_fetch_all_rows($result);
+}
 
 
 function request($key)
@@ -162,6 +180,8 @@ function user()
     return false;
 }
 
+
+
 function dd($data)
 {
     echo "
@@ -177,6 +197,9 @@ function redirect($url)
     header("Location: $url");
     die();
 }
+
+
+
 
 function success($msg)
 {
@@ -222,6 +245,7 @@ function has_success()
 function auth()
 {
     if (!is_logged()) {
+        $_SESSION['error'] = "Please Login First";
         redirect($GLOBALS['root'] . 'login.php');
     }
 }
