@@ -7,8 +7,6 @@ require_once "./components/header.php";
 require_once "./components/nav.php";
 ?>
 
-
-
 <div style="width: 100vw; height:90vh;display:flex;justify-content:center;align-items:center">
     <form action="./controllers/usercontroller.php" method="post">
         <legend>Login Form</legend>
