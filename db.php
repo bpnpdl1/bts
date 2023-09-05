@@ -1,9 +1,9 @@
 <?php
 session_start();
 
-$root = "http://localhost:8080/bts/";
+$root = "http://localhost/bts/";
 
-$_SESSION['root'] = $root;
+// $_SESSION['root'] = $root;
 
 
 

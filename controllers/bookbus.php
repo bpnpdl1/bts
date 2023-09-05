@@ -2,17 +2,23 @@
 require_once __DIR__ . "/../db.php";
 
 
-if (isset($_SESSION['seat'])) {
+if (isset($_SESSION['seats'])) {
 
 
 
 
 
     $seat = $_SESSION['seat'];
+    $seats=$_SESSION['seats'];
+
+
+    
 
     // $data = create('seat', $seat);
 
     $trips = $_SESSION['trips'];
+
+    // dd($trips);
 
     $route = find('routes', $trips['route_id']);
     $bus = find('buses', $trips['bus_id']);
@@ -30,7 +36,7 @@ if (isset($_SESSION['seat'])) {
 
     $ticketdata = [
         'ticket_number' => $ticket,
-        'trip_id' => $seat['trip_id'],
+        'trip_id' => $trips['id'],
         'user_id' => $_SESSION['user_id'],
         'total_fare' => $route['fare'] * $_REQUEST['seat_number'],
     ];
@@ -42,6 +48,21 @@ if (isset($_SESSION['seat'])) {
 
     $sql = "SELECT max(id) as id FROM tickets";
     $ticket_id = query($sql);
+
+  foreach($seats as $reserve_seat){
+
+    $insertdata=[
+        'bus_id'=>$seat['bus_id'],
+        'trip_id'=>$trips['id'],
+        'seat_number'=>$reserve_seat, 
+        'is_reserved'=>'reserved',  
+    ];
+
+    create('seat',$insertdata);
+
+
+
+  }
 
 
 

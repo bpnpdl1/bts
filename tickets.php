@@ -34,27 +34,26 @@ require_once "./components/nav.php";
 ?>
 
 <div class="container">
-
-
     <?php
     get_error();
     get_success();
     ?>
 </div>
 
-<div class="container p-5">
+<div class="container p-3">
     <p class="h3">Tickets</p>
     <hr>
-    <div class="section">
-
-        <div>
-            <p>Ticket Number : <?php echo $ticket['ticket_number']; ?></p>
+    <div class="row">
+        <div class="col-md-6">
+            <p>Ticket Number: <?php echo $ticket['ticket_number']; ?></p>
             <p>Passenger Name: <?php echo $user['name'] ?></p>
             <p>Passenger Email: <?php echo $user['email'] ?></p>
-            <p>Bus Number Plate : <?php echo $bus['number_plate'] ?></p>
+            <p>Bus Number Plate: <?php echo $bus['number_plate'] ?></p>
+        </div>
+        <div class="col-md-6">
             <p>Route: <?php echo $source_place['place'] . " - " . $destination_place['place'] ?></p>
-            <p>Total Number of Passengers : <?php echo $ticket['total_fare'] / $route['fare'] ?></p>
-            <p>Fare amount: <?php echo  $route['fare'] ?></p>
+            <p>Total Number of Passengers: <?php echo $ticket['total_fare'] / $route['fare'] ?></p>
+            <p>Fare amount: <?php echo $route['fare'] ?></p>
             <p>Date: <?php echo $trips['date'] ?></p>
             <p>Time: <?php echo $trips['time'] ?></p>
         </div>

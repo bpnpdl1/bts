@@ -44,12 +44,16 @@ if (count($routes) > 0) {
 
     $buses_id = [];
     $i = 1;
+
+   
     foreach ($trips as $tripdata) {
         # code...
 
         $buses_id[$i] = $tripdata['bus_id'];
         $i++;
     }
+
+   
 
     foreach ($routes as $route) {
         # code...
